@@ -1,4 +1,4 @@
-# subway_daily DATE PART 전처리
+# subway_daily DATE PART 1: 기본 날짜 기준 만들기
 
 서울 지하철 일별 승하차량 Raw Data를 상권 이동 분석에 활용하기 위해, 날짜 기준과 주요 컬럼 구조를 정리하는 전처리 프로젝트입니다.
 
