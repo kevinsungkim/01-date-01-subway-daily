@@ -14,7 +14,7 @@
 
 이 프로젝트에서는 `사용일자`를 표준 날짜 형식으로 변환하고 `year`, `month`, `day`를 분리합니다. 또한 각 날짜의 요일을 내부적으로 판별해 `date_type`을 `평일`과 `주말`로 구분합니다.
 
-최종 결과는 이후 상권별 유동 흐름을 비교하고 다른 데이터셋과 결합할 때 공통 기준으로 사용할 `subway_daily` 분석용 데이터셋입니다.
+이 단계의 결과는 이후 DATE PART 2의 공휴일 보정과 역별 메타데이터 결합을 거쳐 실제 상권 이동 분석에 사용하는 `subway_daily` 데이터셋으로 확장됩니다.
 
 ## 전처리 전후 비교
 
@@ -52,7 +52,7 @@ Raw Data의 `역명` 값에는 `역` 표기가 없어, 상권명·지역명과 �
 ## 전처리 흐름
 
 ```text
-홍대입구역 미니 Raw Data
+서울 지하철 일별 Raw Data
                  ↓
 사용일자 형식 및 실제 날짜 확인
                  ↓
@@ -64,8 +64,16 @@ date, year, month, day 생성
                  ↓
 일별 총 승하차 인원 계산
                  ↓
-subway_daily 분석용 데이터셋
+DATE PART 1 기본 subway_daily
+                 ↓
+DATE PART 2 공휴일 기준 보정
+                 ↓
+역별 분석 메타데이터 결합
+                 ↓
+상권 이동 분석용 subway_daily
 ```
+
+이 저장소에서 직접 수행하는 범위는 `DATE PART 1 기본 subway_daily`까지이며, 이후 공휴일 보정과 역별 메타데이터 결합은 별도의 단계에서 수행합니다.
 
 ## DATE PART 기준
 
@@ -83,11 +91,80 @@ subway_daily 분석용 데이터셋
 
 ## 공휴일 처리 범위
 
-현재 `date_type`은 요일을 기준으로 `평일`과 `주말`만 구분하며, 공휴일 여부는 반영하지 않습니다. 따라서 공휴일도 해당 날짜의 요일에 따라 이 단계에서는 `평일` 또는 `주말`로 분류됩니다.
+현재 DATE PART 1의 `date_type`은 날짜의 요일을 기준으로 `평일`과 `주말`만 구분하며, 공휴일 여부는 반영하지 않습니다. 따라서 공휴일도 해당 날짜의 요일에 따라 이 단계에서는 `평일` 또는 `주말`로 분류됩니다.
 
-공휴일 보정은 상권 이동 분석의 다음 전처리 단계에서 별도로 진행할 예정입니다. 한국천문연구원 API를 기반으로 공휴일 기준 테이블 (holiday master)을 만든 뒤, `date`를 기준으로 `subway_daily`와 결합해 요일 구분과 별개로 실제 공휴일에 해당하는 날짜를 식별합니다.
+공휴일 보정은 다음 전처리 단계인 DATE PART 2에서 별도로 수행합니다. 한국천문연구원 API를 기반으로 만든 공휴일 기준 테이블(holiday master)을 `date` 기준으로 `subway_daily`와 결합해, 실제 공휴일에 해당하는 날짜의 `date_type`을 `공휴일`로 보정합니다.
 
-이 저장소에서는 Raw Data의 날짜 형식을 변환하고 요일에 따라 평일·주말을 구분하는 DATE PART 전처리에 집중하며, 공휴일 데이터 생성과 결합은 별도의 단계로 분리합니다.
+이 저장소에서는 Raw Data의 날짜 형식을 변환하고 날짜의 요일에 따라 평일·주말을 구분하는 기본 DATE PART 전처리에 집중합니다.
+
+## 전처리 결과
+
+`processed_subway_daily_sample.csv`는 DATE PART 1의 전처리 구조를 확인하기 위한 다음 10개 컬럼으로 구성됩니다.
+
+| column                   | description            |
+| ------------------------ | ---------------------- |
+| `date`                   | 사용 날짜                  |
+| `year`                   | 연도                     |
+| `month`                  | 월                      |
+| `day`                    | 일                      |
+| `date_type`              | 기본 날짜 유형인 `평일` 또는 `주말` |
+| `line_name`              | 지하철 노선명                |
+| `station_name`           | `역` 접미사를 추가한 지하철역명     |
+| `daily_in_passengers`    | 일별 승차 인원               |
+| `daily_out_passengers`   | 일별 하차 인원               |
+| `daily_total_passengers` | 일별 총 승하차 인원            |
+
+GitHub의 Processed Sample은 홍대입구역을 예시로 DATE PART 1의 입력·출력 구조를 재현하기 위한 데이터입니다.
+
+## 실제 상권 이동 분석용 `subway_daily`
+
+GitHub의 Processed Sample은 DATE PART 1의 전처리 구조를 보여주기 위한 미니 샘플이며, 실제 상권 이동 분석에서는 동일한 날짜 전처리 기준을 전체 분석 대상 데이터에 적용한 뒤 후속 단계를 거쳐 `subway_daily`를 확장했습니다.
+
+전체 흐름은 다음과 같습니다.
+
+```text
+DATE PART 1
+기본 날짜 기준 생성
+        ↓
+DATE PART 2
+공휴일 기준 보정
+        ↓
+역별 분석 메타데이터 결합
+        ↓
+실제 상권 이동 분석용 subway_daily
+```
+
+DATE PART 2에서는 기존 `date_type`에 공휴일 기준을 반영해 최종적으로 `평일`, `주말`, `공휴일`을 구분합니다.
+
+이후 실제 상권 이동 분석에서는 다음 역별 메타데이터를 추가로 결합합니다.
+
+| column           | description                        |
+| ---------------- | ---------------------------------- |
+| `station_id`     | 역 식별 ID                            |
+| `nearby_station` | 상권 분석에 사용하는 인접 역 기준                |
+| `district`       | `건대`, `성수`, `홍대`, `신촌` 등 분석용 지역 그룹 |
+| `axis`           | `건대-성수축`, `신촌-홍대축` 등 상권 이동 분석 축    |
+
+실제 상권 이동 분석에 사용한 `subway_daily` 데이터셋은 다음 14개 컬럼으로 구성됩니다.
+
+```text
+station_id
+line_name
+station_name
+nearby_station
+district
+axis
+date
+year
+month
+day
+date_type
+daily_in_passengers
+daily_out_passengers
+daily_total_passengers
+```
+
+즉 DATE PART 1에서 만든 날짜·역·승하차 기준을 유지하면서, DATE PART 2의 공휴일 보정과 역별 분석 메타데이터를 순차적으로 결합해 실제 상권 이동 분석용 `subway_daily`로 확장한 구조입니다.
 
 ## 실행 방법
 
@@ -121,9 +198,11 @@ python src/preprocess_subway_daily_date.py \
 
 ## 포트폴리오 관점의 의미
 
-상권 이동 분석에서 날짜는 여러 데이터셋을 연결하는 기준이 됩니다. 따라서 날짜를 단순히 보기 좋은 형태로 바꾸는 데서 끝내지 않고, 이후 분석과 결합 과정에서 반복해서 사용할 수 있는 공통 구조로 만드는 것이 중요합니다.
+상권 이동 분석에서 날짜는 여러 데이터셋을 연결하고 시계열 흐름을 비교하는 공통 기준이 됩니다. 따라서 날짜를 단순히 보기 좋은 형태로 바꾸는 데서 끝내지 않고, 이후 분석 단계에서 반복해서 사용할 수 있는 구조로 만드는 것이 중요합니다.
 
-이 저장소는 `subway_daily` 데이터셋의 날짜 기준을 먼저 정의하고, 원본 컬럼을 분석용 이름으로 정리하며, 승하차 합계를 계산하는 과정을 재현할 수 있도록 구성했습니다. 이후에는 holiday master, 상권 정보, 공간 단위 데이터와 순차적으로 결합해 상권 이동 분석으로 확장할 수 있습니다.
+이 저장소에서는 `subway_daily`의 기본 날짜 기준을 정의하고, 원본 컬럼을 분석용 이름으로 정리하며, 일별 승하차 합계를 계산하는 과정을 재현합니다.
+
+이후 DATE PART 2의 공휴일 보정과 역별 메타데이터 결합을 통해 기본 전처리 결과를 실제 상권 이동 분석에 사용하는 14개 컬럼의 `subway_daily` 데이터셋으로 단계적으로 확장합니다.
 
 ## 파일 구조
 
@@ -140,5 +219,5 @@ python src/preprocess_subway_daily_date.py \
 ```
 
 * `raw_subway_daily_sample.csv`: 2026년 4월 홍대입구역 3개 노선, 90행의 실제 미니 샘플
-* `processed_subway_daily_sample.csv`: 같은 90행을 `subway_daily` 컬럼 구조로 변환한 결과
+* `processed_subway_daily_sample.csv`: 같은 90행을 DATE PART 1의 `subway_daily` 컬럼 구조로 변환한 결과
 * `preprocess_subway_daily_date.py`: 날짜 기준 생성과 컬럼 정리를 수행하는 전처리 코드
