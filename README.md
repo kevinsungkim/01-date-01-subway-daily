@@ -1,4 +1,4 @@
-# subway_daily DATE PART 1: 기본 날짜 기준 만들기
+# subway_daily | DATE PART 1: 기본 날짜 기준 만들기
 
 ## 프로젝트 개요
 
